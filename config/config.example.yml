@@ -100,4 +100,12 @@ publisher:
     original: False
     title_prefix: 标题前缀
     collection: 集合名称
+  tiktok:
+    enable: True
+    title_prefix: 标题前缀
+    collection: 集合名称
+  youtube:
+    enable: True
+    title_prefix: 标题前缀
+    collection: 集合名称
 

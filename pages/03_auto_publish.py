@@ -437,6 +437,42 @@ with video_config_container:
         st.text_input(label=tr("Section Level2"), key="video_publish_bilibili_section_level2",
                       value=get_bilibili_value('section', 'level2'), on_change=set_bilibili_value,
                       args=('section', 'level2', 'video_publish_bilibili_section_level2'))
+    st.subheader(tr("TikTok Config"))
+    st.checkbox(label=tr("Enable tiktok"), key="video_publish_enable_tiktok",
+                value=get_enable('tiktok'), on_change=set_enable,
+                args=('tiktok', 'video_publish_enable_tiktok'))
+    if not st.session_state.get("video_publish_use_common_config"):
+        st_columns = st.columns(3)
+        with st_columns[0]:
+            st.text_input(label=tr("Title Prefix"), key="video_publish_tiktok_title_prefix",
+                          value=get_title_prefix('tiktok'), on_change=set_title_prefix,
+                          args=('tiktok', 'video_publish_tiktok_title_prefix'))
+        with st_columns[1]:
+            st.text_input(label=tr("Collection Name"), key="video_publish_tiktok_collection_name",
+                          value=get_collection_name('tiktok'), on_change=set_collection_name,
+                          args=('tiktok', 'video_publish_tiktok_collection_name'))
+        with st_columns[2]:
+            st.text_input(label=tr("Tags"), key="video_publish_tiktok_tags",
+                          value=get_tags('tiktok'), on_change=set_tags,
+                          args=('tiktok', 'video_publish_tiktok_tags'))
+    st.subheader(tr("YouTube Config"))
+    st.checkbox(label=tr("Enable youtube"), key="video_publish_enable_youtube",
+                value=get_enable('youtube'), on_change=set_enable,
+                args=('youtube', 'video_publish_enable_youtube'))
+    if not st.session_state.get("video_publish_use_common_config"):
+        st_columns = st.columns(3)
+        with st_columns[0]:
+            st.text_input(label=tr("Title Prefix"), key="video_publish_youtube_title_prefix",
+                          value=get_title_prefix('youtube'), on_change=set_title_prefix,
+                          args=('youtube', 'video_publish_youtube_title_prefix'))
+        with st_columns[1]:
+            st.text_input(label=tr("Collection Name"), key="video_publish_youtube_collection_name",
+                          value=get_collection_name('youtube'), on_change=set_collection_name,
+                          args=('youtube', 'video_publish_youtube_collection_name'))
+        with st_columns[2]:
+            st.text_input(label=tr("Tags"), key="video_publish_youtube_tags",
+                          value=get_tags('youtube'), on_change=set_tags,
+                          args=('youtube', 'video_publish_youtube_tags'))
 
 st.warning(tr("Click the test button, one new page will be opened, if not, that means your config has some error."))
 st.button(label=tr("Test Publish"), type="primary", on_click=test_publish_video)

@@ -35,6 +35,8 @@ from services.publisher.douyin_publisher import douyin_publisher
 from services.publisher.kuaishou_publisher import kuaishou_publisher
 from services.publisher.shipinhao_publisher import shipinhao_publisher
 from services.publisher.bilibili_publisher import bilibili_publisher
+from services.publisher.tiktok_publisher import tiktok_publisher
+from services.publisher.youtube_publisher import youtube_publisher
 from tools.file_utils import write_to_file, list_files, read_head
 from tools.utils import get_must_session_option
 
@@ -45,6 +47,8 @@ all_sites = ['xiaohongshu',
              'kuaishou',
              'shipinhao',
              'bilibili',
+             'tiktok',
+             'youtube',
              ]
 
 
@@ -84,6 +88,12 @@ def publish_file():
     if st.session_state.get("video_publish_enable_bilibili"):
         publish_to_platform('bilibili', driver, video_file, text_file)
     
+    if st.session_state.get("video_publish_enable_tiktok"):
+        publish_to_platform('tiktok', driver, video_file, text_file)
+    
+    if st.session_state.get("video_publish_enable_youtube"):
+        publish_to_platform('youtube', driver, video_file, text_file)
+
 
 def publish_all():
     driver = init_driver()

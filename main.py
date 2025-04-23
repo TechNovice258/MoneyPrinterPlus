@@ -82,6 +82,9 @@ def get_resource_provider():
         return PixabayService()
     if resource_provider == "stableDiffusion":
         return SDService()
+    if resource_provider == "mangadex":
+        from services.resource.mangadex_service import MangadexService
+        return MangadexService()
 
 
 

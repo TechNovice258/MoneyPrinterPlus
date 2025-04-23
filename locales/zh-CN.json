@@ -154,5 +154,10 @@
   "Auto Publish": "是否自动发布",
   "Tags": "视频标签",
   "Video File": "视频文件",
-  "Text File": "文本文件"
+  "Text File": "文本文件",
+  "Mangadex": "Mangadex",
+  "Mangadex Client ID": "Mangadex Client ID",
+  "Mangadex Client Secret": "Mangadex Client Secret",
+  "Mangadex Username": "Mangadex用户名",
+  "Mangadex Password": "Mangadex密码"
 }

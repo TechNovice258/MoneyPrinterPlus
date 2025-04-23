@@ -108,4 +108,11 @@ publisher:
     enable: True
     title_prefix: 标题前缀
     collection: 集合名称
+  mangadex:
+    client_id: ""
+    client_secret: ""
+    username: ""
+    password: ""
+    access_token: ""
+  provider: mangadex
 

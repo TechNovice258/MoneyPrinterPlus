@@ -202,6 +202,55 @@ def set_llm_model_name(provider, key):
     save_config()
 
 
+def save_mangadex_client_id():
+    my_config['resource']['mangadex']['client_id'] = st.session_state['mangadex_client_id']
+    save_config()
+    try_mangadex_login()
+
+
+def save_mangadex_client_secret():
+    my_config['resource']['mangadex']['client_secret'] = st.session_state['mangadex_client_secret']
+    save_config()
+    try_mangadex_login()
+
+
+def try_mangadex_login():
+    import requests
+    url = "https://auth.mangadex.org/realms/mangadex/protocol/openid-connect/token"
+    data = {
+        "grant_type": "password",
+        "client_id": my_config['resource']['mangadex']['client_id'],
+        "client_secret": my_config['resource']['mangadex']['client_secret'],
+        "username": my_config['resource']['mangadex']['username'],
+        "password": my_config['resource']['mangadex']['password']
+    }
+    if not data["client_id"] or not data["client_secret"] or not data["username"] or not data["password"]:
+        return
+    try:
+        resp = requests.post(url, data=data)
+        if resp.status_code == 200:
+            token = resp.json()['access_token']
+            my_config['resource']['mangadex']['access_token'] = token
+            save_config()
+            st.success("Mangadex 登录成功，Token已保存！")
+        else:
+            st.warning("Mangadex 登录失败：" + resp.text)
+    except Exception as e:
+        st.warning(f"Mangadex 登录异常: {e}")
+
+
+def save_mangadex_username():
+    my_config['resource']['mangadex']['username'] = st.session_state['mangadex_username']
+    save_config()
+    try_mangadex_login()
+
+
+def save_mangadex_password():
+    my_config['resource']['mangadex']['password'] = st.session_state['mangadex_password']
+    save_config()
+    try_mangadex_login()
+
+
 # 设置language
 display_languages = []
 selected_index = 0
@@ -215,7 +264,7 @@ selected_language = st.selectbox(tr("Language"), options=display_languages,
 # 设置资源
 resource_container = st.container(border=True)
 with resource_container:
-    resource_providers = ['pexels', 'pixabay', 'stableDiffusion', 'comfyUI']
+    resource_providers = ['pexels', 'pixabay', 'stableDiffusion', 'comfyUI', 'mangadex']
     selected_resource_provider = my_config['resource']['provider']
     selected_resource_provider_index = 0
     for i, provider in enumerate(resource_providers):
@@ -228,7 +277,7 @@ with resource_container:
                                 key='resource_provider', on_change=set_resource_provider)
 
     # 设置资源key
-    key_panels = st.columns(3)
+    key_panels = st.columns(4)
     if selected_resource_provider == 'pexels':
         with key_panels[0]:
             pexels_api_key = my_config['resource']['pexels']['api_key']
@@ -253,6 +302,19 @@ with resource_container:
             sd_api_address = my_config['resource'].get('stableDiffusion', {}).get('server_address', '')
             st.text_input(tr("Stable Diffusion API Server Address"), value=sd_api_address,
                           key='stableDiffusion_api_server_address', on_change=save_stable_diffusion_api_server_address)
+    if selected_resource_provider == 'mangadex':
+        with key_panels[0]:
+            mangadex_client_id = my_config['resource']['mangadex'].get('client_id', '')
+            mangadex_client_id = st.text_input(tr("Mangadex Client ID"), value=mangadex_client_id, key='mangadex_client_id', on_change=save_mangadex_client_id)
+        with key_panels[1]:
+            mangadex_client_secret = my_config['resource']['mangadex'].get('client_secret', '')
+            mangadex_client_secret = st.text_input(tr("Mangadex Client Secret"), value=mangadex_client_secret, type="password", key='mangadex_client_secret', on_change=save_mangadex_client_secret)
+        with key_panels[2]:
+            mangadex_username = my_config['resource']['mangadex'].get('username', '')
+            mangadex_username = st.text_input(tr("Mangadex Username"), value=mangadex_username, key='mangadex_username', on_change=save_mangadex_username)
+        with key_panels[3]:
+            mangadex_password = my_config['resource']['mangadex'].get('password', '')
+            mangadex_password = st.text_input(tr("Mangadex Password"), value=mangadex_password, type="password", key='mangadex_password', on_change=save_mangadex_password)
 
 # 设置语音
 audio_container = st.container(border=True)

@@ -5,6 +5,8 @@ import requests
 import os
 from services.resource.resource_service import ResourceService
 from const.video_const import Orientation
+import re
+from PIL import Image
 
 script_path = os.path.abspath(__file__)
 script_dir = os.path.dirname(script_path)
@@ -140,4 +142,145 @@ class MangadexService(ResourceService):
             print("No images in chapter.")
         print("[Mangadex调试] return_imgs:", return_imgs)
         # 5. 返回本地图片路径列表和总页数
+        return return_imgs, len(return_imgs)
+
+    def get_manga_and_chapters(self, query):
+        import re
+        uuid_pattern = re.compile(r'^[0-9a-fA-F-]{36}$')
+        manga_id = None
+        selected_chapter_id = None
+        # 1. 判断是否为UUID
+        if uuid_pattern.match(query):
+            # 先查是不是漫画ID
+            manga_info_resp = requests.get(f'https://api.mangadex.org/manga/{query}')
+            if manga_info_resp.status_code == 200 and 'data' in manga_info_resp.json():
+                manga_id = query
+            else:
+                # 查是不是章节ID
+                chapter_resp = requests.get(f'https://api.mangadex.org/chapter/{query}')
+                if chapter_resp.status_code == 200 and 'data' in chapter_resp.json():
+                    for rel in chapter_resp.json()['data']['relationships']:
+                        if rel['type'] == 'manga':
+                            manga_id = rel['id']
+                            selected_chapter_id = query
+                            break
+                if not manga_id:
+                    return None, [], None
+        else:
+            # title查找
+            manga_data = self.search_manga(query, 5)
+            if manga_data and 'data' in manga_data and manga_data['data']:
+                manga_id = manga_data['data'][0]['id']
+            else:
+                # 变体尝试
+                alt_titles = [
+                    query.replace(' ', ''),
+                    query.lower(),
+                    query.title(),
+                ]
+                found = False
+                for alt in alt_titles:
+                    manga_data = self.search_manga(alt, 5)
+                    if manga_data and 'data' in manga_data and manga_data['data']:
+                        manga_id = manga_data['data'][0]['id']
+                        found = True
+                        break
+                if not found:
+                    return None, [], None
+        # 统一章节获取逻辑
+        def fetch_feed(manga_id, with_lang=True):
+            chapters = []
+            offset = 0
+            while True:
+                params = {"limit": 100, "offset": offset}
+                if with_lang:
+                    params["translatedLanguage[]"] = ["en", "zh-hans", "zh", "ko", "ja"]
+                resp = requests.get(f"https://api.mangadex.org/manga/{manga_id}/feed", params=params)
+                if resp.status_code != 200:
+                    break
+                data = resp.json()
+                if 'data' not in data or not data['data']:
+                    break
+                for ch in data['data']:
+                    chapters.append({
+                        "id": ch['id'],
+                        "title": ch['attributes'].get('title', ''),
+                        "chapter": ch['attributes'].get('chapter', ''),
+                        "volume": ch['attributes'].get('volume', ''),
+                        "translatedLanguage": ch['attributes'].get('translatedLanguage', '')
+                    })
+                if len(data['data']) < 100:
+                    break
+                offset += 100
+            return chapters
+        chapters = fetch_feed(manga_id, with_lang=True)
+        if not chapters:
+            chapters = fetch_feed(manga_id, with_lang=False)
+        # 默认选中逻辑
+        if selected_chapter_id:
+            selected_idx = next((i for i, ch in enumerate(chapters) if ch['id'] == selected_chapter_id), 0)
+        else:
+            selected_idx = 0
+        return manga_id, chapters, selected_idx
+
+    def handle_video_resource_by_chapter(self, chapter_id):
+        images_info = self.get_chapter_images(chapter_id)
+        if not images_info or 'chapter' not in images_info:
+            print("No images found.")
+            return [], 0
+        base_url = images_info['baseUrl']
+        hash_val = images_info['chapter']['hash']
+        img_files = images_info['chapter']['data']
+        return_imgs = []
+        for idx, img_file in enumerate(img_files):
+            img_url = f"{base_url}/data/{hash_val}/{img_file}"
+            img_name = img_file.split('.')[-2]
+            save_name = os.path.join(workdir, f"mangadex-{chapter_id}-{img_name}.{img_file.split('.')[-1]}")
+            download_image(img_url, save_name)
+            img = Image.open(save_name)
+            width, height = img.size
+            target_width = 1080
+            target_height = 1920
+            overlap = 200
+            # 只保留高宽比大于2的图片（正文），其余跳过
+            if height / width < 2:
+                print(f"跳过非正文图片: {save_name}")
+                continue
+            # 先等比缩放宽度到1080
+            if width != target_width:
+                scale_ratio = target_width / width
+                new_height = int(height * scale_ratio)
+                img = img.resize((target_width, new_height), Image.LANCZOS)
+                width, height = img.size
+            # 如果图片高度小于目标高度，pad补齐
+            if height <= target_height:
+                from PIL import ImageOps
+                pad_img = ImageOps.pad(img, (target_width, target_height), color=(0,0,0))
+                cut_name = save_name.replace('.', f'-cut0.')
+                pad_img.save(cut_name)
+                return_imgs.append(cut_name)
+            else:
+                # 按1920像素一段切割，重叠overlap像素
+                start = 0
+                cut_idx = 0
+                while start < height:
+                    end = min(start + target_height, height)
+                    box = (0, start, target_width, end)
+                    cut_img = img.crop(box)
+                    # 切割后如果内容高度不足目标高度一半，也跳过
+                    if cut_img.size[1] < target_height // 2:
+                        start += target_height - overlap
+                        cut_idx += 1
+                        continue
+                    # 如果最后一段不足1920高，pad补齐
+                    if cut_img.size[1] < target_height:
+                        from PIL import ImageOps
+                        cut_img = ImageOps.pad(cut_img, (target_width, target_height), color=(0,0,0))
+                    cut_name = save_name.replace('.', f'-cut{cut_idx}.')
+                    cut_img.save(cut_name)
+                    return_imgs.append(cut_name)
+                    if end == height:
+                        break
+                    start += target_height - overlap
+                    cut_idx += 1
         return return_imgs, len(return_imgs) 

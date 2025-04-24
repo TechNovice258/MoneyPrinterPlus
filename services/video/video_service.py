@@ -350,7 +350,7 @@ class VideoService:
                         '-t', str(self.default_duration),
                         '-r', str(self.fps),
                         '-vf',
-                        f'scale=-1:{self.target_height}:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
+                        f'scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
                         '-y', output_name]
                 else:
                     # ffmpeg_cmd = f"ffmpeg -loop 1 -i '{media_file}' -c:v h264 -t {self.default_duration} -r {self.fps} -vf 'scale={self.target_width}:-1:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2' -y {output_name}"
@@ -362,7 +362,7 @@ class VideoService:
                         '-t', str(self.default_duration),
                         '-r', str(self.fps),
                         '-vf',
-                        f'scale={self.target_width}:-1:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
+                        f'scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
                         '-y', output_name]
                 print(" ".join(ffmpeg_cmd))
                 subprocess.run(ffmpeg_cmd, check=True, capture_output=True)
@@ -384,7 +384,7 @@ class VideoService:
                             '-r', str(self.fps),  # 设置帧率
                             '-an',  # 去除音频
                             '-vf',
-                            f"setpts={stretch_factor}*PTS,scale=-1:{self.target_height}:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
+                            f"setpts={stretch_factor}*PTS,scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
                             # 调整时间戳滤镜
                             # '-vf', f'scale=-1:{self.target_height}:force_original_aspect_ratio=1',  # 设置视频滤镜来调整分辨率
                             # '-vf', f'crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
@@ -399,7 +399,7 @@ class VideoService:
                             '-r', str(self.fps),  # 设置帧率
                             '-an',  # 去除音频
                             '-vf',
-                            f"setpts={stretch_factor}*PTS,scale={self.target_width}:-1:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
+                            f"setpts={stretch_factor}*PTS,scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
                             # 调整时间戳滤镜
                             # '-vf', f'scale={self.target_width}:-1:force_original_aspect_ratio=1',  # 设置视频滤镜来调整分辨率
                             # '-vf', f'crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
@@ -424,7 +424,7 @@ class VideoService:
                             # '-vcodec', 'copy',
                             # '-acodec', 'copy',
                             '-vf',
-                            f"scale=-1:{self.target_height}:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
+                            f"scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
                             # 设置视频滤镜来调整分辨率
                             # '-vf', f'crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
                             '-y',
@@ -442,7 +442,7 @@ class VideoService:
                             # '-vcodec', 'copy',
                             # '-acodec', 'copy',
                             '-vf',
-                            f"scale={self.target_width}:-1:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
+                            f"scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
                             # 设置视频滤镜来调整分辨率
                             # '-vf', f'crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
                             '-y',
@@ -459,7 +459,7 @@ class VideoService:
                             '-r', str(self.fps),  # 设置帧率
                             '-an',  # 去除音频
                             '-vf',
-                            f"scale=-1:{self.target_height}:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
+                            f"scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
                             # 设置视频滤镜来调整分辨率
                             # '-vf', f'crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
                             '-y',
@@ -472,7 +472,7 @@ class VideoService:
                             '-r', str(self.fps),  # 设置帧率
                             '-an',  # 去除音频
                             '-vf',
-                            f"scale={self.target_width}:-1:force_original_aspect_ratio=1,crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
+                            f"scale={self.target_width}:{self.target_height}:force_original_aspect_ratio=decrease,pad={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2",
                             # 设置视频滤镜来调整分辨率
                             # '-vf', f'crop={self.target_width}:{self.target_height}:(ow-iw)/2:(oh-ih)/2',
                             '-y',

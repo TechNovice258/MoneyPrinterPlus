@@ -31,6 +31,7 @@ from main import main_generate_video_content, main_generate_ai_video, main_gener
 from pages.common import common_ui
 from services.sd.sd_service import SDService
 from tools.tr_utils import tr
+from services.resource.mangadex_service import MangadexService
 
 import os
 
@@ -128,7 +129,13 @@ with llm_container:
 resource_container = st.container(border=True)
 with resource_container:
     st.subheader(tr("Video Source"))
-    resource_name = my_config['resource'].get('provider', '')
+    # 新增：资源库选择 radio
+    resource_providers = {
+        "stableDiffusion": "Stable Diffusion",
+        "mangadex": "Mangadex漫画"
+    }
+    resource_name = st.radio("选择视频素材来源", list(resource_providers.keys()), format_func=lambda x: resource_providers[x], key="resource_provider_radio", horizontal=True)
+    my_config['resource']['provider'] = resource_name
     st.text(tr("Using Resource:") + resource_name)
     if resource_name == "stableDiffusion":
         sd_service = SDService()
@@ -154,6 +161,105 @@ with resource_container:
             st.slider(label=tr("Steps"), min_value=1, max_value=150, step=1, value=20, key="sd_step")
         with llm_columns[3]:
             st.slider(label=tr("CFG Scale"), min_value=0.0, max_value=1.0, step=0.1, value=0.7, key="sd_cfg_scale")
+    elif resource_name == "mangadex":
+        st.markdown("---")
+        st.subheader("Mangadex漫画章节选择与图片拉取")
+        # 章节选择、拉取、优化剧情等功能（原有 mangadex 相关代码整体移动到这里）
+        if "mangadex_mode" not in st.session_state:
+            st.session_state["mangadex_mode"] = "按章节联动"
+        mangadex_mode = st.radio("素材获取方式", ["按章节联动", "自动拉取素材"], key="mangadex_mode", horizontal=True)
+        if st.session_state.get("video_layout") is not None:
+            mangadex_service = MangadexService()
+            manga_title = st.text_input(
+                "输入漫画名",
+                value=st.session_state.get("video_subject", ""),
+                key="mangadex_manga_title"
+            )
+            st.caption("用于拉取漫画图片素材，可与视频主题不同。")
+            if st.button("获取章节", key="mangadex_get_chapters_btn"):
+                manga_id, chapters, selected_idx = mangadex_service.get_manga_and_chapters(manga_title)
+                def chapter_sort_key(ch):
+                    def safe_float(x):
+                        try:
+                            return float(x)
+                        except:
+                            return float('inf')
+                    return (safe_float(ch.get('volume')), safe_float(ch.get('chapter')))
+                chapters = sorted(chapters, key=chapter_sort_key)
+                lang_priority = ['zh-hans', 'zh', 'en', 'ja', 'ko']
+                unique_chapters = {}
+                for ch in chapters:
+                    key = (ch.get('volume'), ch.get('chapter'))
+                    lang = ch.get('translatedLanguage') or ''
+                    if key not in unique_chapters:
+                        unique_chapters[key] = ch
+                    else:
+                        old_lang = unique_chapters[key].get('translatedLanguage') or ''
+                        def lang_index(l):
+                            return lang_priority.index(l) if l in lang_priority else 99
+                        if lang_index(lang) < lang_index(old_lang):
+                            unique_chapters[key] = ch
+                chapters = list(unique_chapters.values())
+                st.session_state['mangadex_chapters'] = chapters
+                st.session_state['mangadex_manga_id'] = manga_id
+                st.session_state['mangadex_selected_idx'] = selected_idx if selected_idx < len(chapters) else 0
+                st.success(f"共找到{len(chapters)}个章节，请选择。")
+            chapters = st.session_state.get('mangadex_chapters', [])
+            manga_id = st.session_state.get('mangadex_manga_id', None)
+            selected_idx = st.session_state.get('mangadex_selected_idx', 0)
+            if chapters:
+                def chapter_label(ch):
+                    vol = ch.get('volume') or ''
+                    chap = ch.get('chapter') or ''
+                    title = ch.get('title') or '未命名章节'
+                    lang = ch.get('translatedLanguage') or ''
+                    lang_map = {
+                        'zh-hans': '简体中文',
+                        'zh': '中文',
+                        'en': '英文',
+                        'ja': '日文',
+                        'ko': '韩文',
+                        'fr': '法文',
+                        'it': '意大利文',
+                        'es-la': '西班牙文(拉美)',
+                        'pl': '波兰文',
+                        'pt-br': '葡萄牙文(巴西)',
+                    }
+                    lang_disp = lang_map.get(lang, lang) if lang else ''
+                    label = f"卷{vol} 第{chap}话 {title}"
+                    if lang_disp:
+                        label += f" [{lang_disp}]"
+                    return label.strip()
+                chapter_options = [chapter_label(ch) for ch in chapters]
+                selected_idx = st.selectbox("选择章节", range(len(chapter_options)), format_func=lambda i: chapter_options[i], key="mangadex_selected_chapter", index=selected_idx)
+                selected_chapter = chapters[selected_idx]
+                selected_chapter_id = selected_chapter['id']
+                if st.button("用LLM优化本章节剧情为解说文案", key="mangadex_llm_opt_btn"):
+                    manga_info = None
+                    if manga_id:
+                        manga_info_resp = mangadex_service.search_manga(manga_title, 1)
+                        if manga_info_resp and 'data' in manga_info_resp and manga_info_resp['data']:
+                            manga_info = manga_info_resp['data'][0]
+                    chapter_title = selected_chapter.get('title', '')
+                    manga_description = ''
+                    if manga_info:
+                        desc_dict = manga_info.get('attributes', {}).get('description', {})
+                        manga_description = desc_dict.get('zh-hans', '') or desc_dict.get('en', '')
+                    llm_provider = my_config['llm']['provider']
+                    llm_service = get_llm_provider(llm_provider)
+                    topic = chapter_title or manga_title
+                    language = "zh"
+                    length = "300"
+                    video_content = llm_service.generate_content(
+                        topic=topic,
+                        prompt_template=llm_service.topic_prompt_template,
+                        language=language,
+                        length=length
+                    )
+                    st.session_state["pending_video_content"] = video_content
+                    st.success("已用LLM优化本章节剧情为解说文案！")
+        else:
+            st.warning("请先在下方视频配置中设置好视频布局（video_layout）！")
 
 # 配音区域
 captioning_container = st.container(border=True)

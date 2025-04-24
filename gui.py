@@ -28,6 +28,7 @@ from config.config import my_config, save_config, languages, test_config, local_
     delete_first_visit_session_state, app_title
 from pages.common import common_ui
 from tools.tr_utils import tr
+from services.resource.mangadex_service import MangadexService
 
 delete_first_visit_session_state("all_first_visit")
 

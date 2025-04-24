@@ -299,10 +299,8 @@ exclude_keys = ['01_first_visit', '02_first_visit', '03_first_visit', '04_first_
 
 
 def save_session_state_to_yaml():
-    # 创建一个字典副本，排除指定的键
-    state_to_save = {key: value for key, value in st.session_state.items() if key not in exclude_keys}
-
-    """将 Streamlit session_state 中的所有值保存到 YAML 文件"""
+    # 跳过所有以 _btn 结尾的 key
+    state_to_save = {key: value for key, value in st.session_state.items() if not key.endswith('_btn')}
     with open(session_file, 'w') as file:
         yaml.dump(dict(state_to_save), file)
 
@@ -316,21 +314,18 @@ def delete_first_visit_session_state(first_visit):
 
 def load_session_state_from_yaml(first_visit):
     delete_first_visit_session_state(first_visit)
-    # 检查是否存在 "first_visit" 标志
     if first_visit not in st.session_state:
-        # 第一次进入页面，设置标志为 True
         st.session_state[first_visit] = True
-        """从 YAML 文件中读取数据并更新 session_state"""
         if os.path.exists(session_file):
             try:
                 with open(session_file, 'r') as file:
                     data = yaml.safe_load(file)
                     for key, value in data.items():
-                        st.session_state[key] = value
+                        if not key.endswith('_btn'):
+                            st.session_state[key] = value
             except FileNotFoundError:
                 st.warning(f"File {session_file} not found.")
     else:
-        # 后续访问页面，标志设置为 False
         st.session_state[first_visit] = False
 
 

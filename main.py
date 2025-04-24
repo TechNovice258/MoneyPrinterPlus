@@ -302,7 +302,9 @@ def main_generate_ai_video(video_generator):
             st.write(tr("Generate Video subtitles..."))
             main_generate_subtitle()
             st.write(tr("Get Video Resource..."))
-            main_get_video_resource()
+            resource_provider = my_config['resource']['provider']
+            if resource_provider != 'mangadex':
+                main_get_video_resource()
             st.write(tr("Video normalize..."))
             audio_file = get_must_session_option("audio_output_file", "请先生成配音文件")
             if audio_file is None:
